@@ -73,11 +73,11 @@ def main(vs):
     var_store=vs
     tft = var_store['tft']
     tft.set_tch_cb(tch_cb)
-
+    tft.use_buf(False)
     tft.fill(NAVY)
     tft.rect(20,20,200,100,LIME)
-    tft.text('Hello World!',25,50)
-    tft.text('Press C to exit',25,60)
+    tft.text('Hello World!',25,50,WHITE,NAVY)
+    tft.text('Press C to exit',25,60,WHITE,NAVY)
     cnt=0
     show_btns()
     while True:
@@ -85,6 +85,6 @@ def main(vs):
             if btn['C']:
                 break
         time.sleep(1)
-        tft.text('%s' % cnt, 25,80)
+        tft.text('%s' % cnt, 25,80,WHITE,NAVY)
         cnt+=1
     return var_store['old_app_name']

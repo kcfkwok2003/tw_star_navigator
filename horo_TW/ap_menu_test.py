@@ -54,7 +54,7 @@ def item_dialog(n):
     global tft,menu,msel,dialog_on
     text = menu['items'][msel][0]
     tft.fill_rect(10,40,100,40,NAVY)
-    tft.text(text,12,42,WHITE)
+    tft.text(text,12,42,WHITE,NAVY)
     tft.rect(10,40,100,40,WHITE)
     dialog_on=True
     
@@ -67,7 +67,7 @@ def clear_dialog():
 def reset(n):
     global tft
     print('reset')
-    tft.text('Reseting...',5,5,WHITE)    
+    tft.text('Reseting...',5,5,WHITE,NAVY)    
     import machine
     machine.reset()
     
@@ -135,7 +135,7 @@ def show_menu(refresh=False):
     w= 240
     h=20
     menu_name=menu['name']
-    tft.text(menu_name,x+2,y+5,WHITE)
+    tft.text(menu_name,x+2,y+5,WHITE,NAVY)
     tft.rect(x,y,w,h,WHITE)
     
     y+=25
@@ -146,9 +146,9 @@ def show_menu(refresh=False):
             break
         menux = item[0]
         if i+mstart==msel:
-            tft.text(menux,x,y,BLACK,WHITE)
+            tft.text(menux,x,y,NAVY,WHITE)
         else:
-            tft.text(menux,x,y,WHITE,BG_NAVY)
+            tft.text(menux,x,y,WHITE,NAVY)
         y+=15
         i+=1
     
@@ -179,6 +179,7 @@ def main(vs):
     var_store=vs
     tft = var_store['tft']
     tft.set_tch_cb(tch_cb)
+    tft.use_buf(False)
     
     dialog_on=False
     quit_f=False

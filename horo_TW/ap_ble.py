@@ -39,20 +39,21 @@ def main(var_store):
     hm = var_store['horo_main']
     tft = var_store['tft']
     tft.set_tch_cb(tch_cb)
-    info = hm.info
-    apname = info['apname']
-    ip = info['ip']
+    tft.use_buf(False)
+    #info = hm.info
+    #apname = info['apname']
+    #ip = info['ip']
     tft.fill_rect(20,20,200,100,NAVY)
     tft.rect(20,20,200,100,LIME)
-    tft.text(apname, 25,30, WHITE)
-    tft.text(ip, 25,40,WHITE)    
-    tft.text('starting ble',25,50,WHITE)
+    #tft.text(apname, 25,30, WHITE,NAVY)
+    #tft.text(ip, 25,40,WHITE,NAVY)    
+    tft.text('starting ble',25,50,WHITE,NAVY)
     import ble_set_ap
     ble_uart = ble_set_ap.start(hm.AP_ESSID)
     var_store['ble_uart']=ble_uart
     var_store['ble_started']=True
-    tft.text('BLE:%s' % hm.AP_ESSID, 25,50,WHITE)
-    tft.text('Press C to exit',25,60)
+    tft.text('BLE:%s' % hm.AP_ESSID, 25,50,WHITE,NAVY)
+    tft.text('Press C to exit',25,60,WHITE,NAVY)
     show_btns()
     while True:
         if chk_btn():

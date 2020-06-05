@@ -8,6 +8,8 @@ import network
 import os
 import sys
 import font as fnt
+from wifi_stt import *
+
 fnt.table.set_e('etfontx32cg')
 
 MSG_SP='{m: <{w}}'.format(m=' ',w=40)
@@ -101,10 +103,13 @@ def on_down(n):
         show_menu()
 
 def on_enter(n):
-    global msel, menu, next_app,quit_f
+    global msel, menu, next_app,quit_f,tft
     print('on_enter')
     items=menu['items']
     action= items[msel][1]
+    if tft.use_buf():
+        tft.use_buf(False)
+    tft.text(items[msel][0],0,180,WHITE,RED)
     if action:
         if type(action)==type(''):
             next_app=action
@@ -114,88 +119,79 @@ def on_enter(n):
         else:
             action(n)        
 
+
+    
 msg_changed=False
-def start_wifi_connect(n):
-    global msg_changed,msg_1,msg_2
-    sta=var_store['horo_main'].sta
-    print('start_wifi_connect')
-    sta = network.WLAN(network.STA_IF)
-    if sta.active():
-        sta.active(False)
-    fs = os.listdir()
-    if 'ap.py' in fs:
-        try:
-            from ap import apname, appass
-            sta = network.WLAN(network.STA_IF)
-            sta.active(True)
-            sta.connect(apname,appass)
-            expire=time.time()+10
-            while time.time() < expire:
-                if sta.isconnected():
-                    break
-            if sta.isconnected():
-                ips = sta.ifconfig()
-                ip= ips[0]
-                msg_1 ='{m: <{w}}'.format(m=apname,w=20)
-                msg_2='{m: <{w}}'.format(m=ip,w=20)
-            else:
-                sta.active(False)
-                msg_1='{m: <{w}}'.format(m="WIFI connect failure",w=20)
-                msg_2=''
-            msg_changed=True
-            return
-        except Exception as e:
-            sys.print_exception(e)
+def start_wifi_ap(n):
+    global msg_changed,msg_1,msg_2,var_store
+    hm = var_store['horo_main']
+    try:
+        wlan,info=hm.setup_ap1()
+        apname=hm.info['apname']
+        appass=hm.info['appass']
+        ip =hm.info['ip']
+        msg_1 ='{m: <{w}}'.format(m='%s %s' % (apname,appass),w=20)
+        msg_2='{m: <{w}}'.format(m=ip,w=20)
+        save_wifi_state(WIFI_AP)
+        msg_changed=True
+        return                
+    except Exception as e:
+        sys.print_exception(e)
     msg_1='{m: <{w}}'.format(m='start fail',w=20)
     msg_2=''
     msg_changed=True
+    save_wifi_state(WIFI_STOP)
     
-def start_wifi_ap(n):
-    global msg_1,msg_changed,msg_2
-    print('start_wifi_ap')
+def start_wifi_connect(n):
+    global msg_changed,msg_1,msg_2,var_store
+    if 'ap' in sys.modules:
+        del sys.modules['ap']    
     hm = var_store['horo_main']
-    sta=hm.sta
-    if sta:
-        if sta.active():
-            sta.active(False)
-    wlan=hm.wlan
-    if wlan:
-        if wlan.active():
-            wlan.active(False)
-        
     try:
-        wlan = network.WLAN(network.AP_IF)
-        wlan.active(True)
-        from ap0 import PASS
-        essid = wlan.config('essid')
-        print('essid:%s pass:%s' % (essid,PASS))
-        #wlan.config(essid=hm.AP_ESSID)
-        wlan.config(authmode=hm.AP_AUTHMODE, password=PASS)
-        ips = wlan.ifconfig()
-        hm.wlan=wlan
-        msg_1 ='{m: <{w}}'.format(m=essid,w=20)
-        msg_2 ='{m: <{w}}'.format(m='%s %s' % (ips[0],PASS),w=20)
+        sta=hm.setup_sta()
+        if sta.isconnected():
+            apname=hm.info['apname']
+            ip =hm.info['ip']
+            msg_1 ='{m: <{w}}'.format(m=apname,w=20)
+            msg_2='{m: <{w}}'.format(m=ip,w=20)
+            save_wifi_state(WIFI_CONN)
+        else:
+            sta.active(False)
+            msg_1='{m: <{w}}'.format(m="WIFI connect failure",w=20)
+            msg_2=''
+            hm.info['ip']='-'
+            save_wifi_state(WIFI_STOP)
+        msg_changed=True
+        return                
     except Exception as e:
         sys.print_exception(e)
-        msg_1='{m: <{w}}'.format(m='start fail',w=20)
-        msg_2=''
+    msg_1='{m: <{w}}'.format(m='start fail',w=20)
+    msg_2=''
     msg_changed=True
+    hm.info['ip']='-'
+    save_wifi_state(WIFI_STOP)
     
 def stop_wifi(n):
-    global msg_1,msg_changed,msg_2
+    global msg_1,msg_changed,msg_2,var_store
     print('stop_wifi')
-    hm = var_store['horo_main']
-    sta=hm.sta
-    wlan= hm.wlan
-    if sta:
-        if sta.active():
-            sta.active(False)
-    if wlan:
-        if wlan.active():
-            wlan.active(False)
+    hm = var_store['horo_main']    
+    try:
+        sta=hm.sta
+        wlan= hm.wlan
+        if sta:
+            if sta.active():
+                sta.active(False)
+        if wlan:
+            if wlan.active():
+                wlan.active(False)
+    except Exception as e:
+        sys.print_exception(e)
+        
     msg_1='{m: <{w}}'.format(m='WIFI stopped',w=20)
     msg_2=''
     msg_changed=True
+    hm.info['ip']='-'
+    save_wifi_state(WIFI_STOP)
     
 def sync_internet_time(n):
     global var_store, msg_1,msg_2,msg_changed
@@ -237,7 +233,7 @@ def show_menu(refresh=False):
     w= 240
     h=20
     menu_name=menu['name']
-    tft.text(menu_name,x+2,y+5,WHITE)
+    tft.text(menu_name,x+2,y+5,WHITE,NAVY)
     tft.rect(x,y,w,h,WHITE)
     
     y+=25
@@ -248,9 +244,9 @@ def show_menu(refresh=False):
             break
         menux = item[0]
         if i+mstart==msel:
-            tft.text(menux,x,y,BLACK,WHITE)
+            tft.text(menux,x,y,NAVY,WHITE)
         else:
-            tft.text(menux,x,y,WHITE,BG_NAVY)
+            tft.text(menux,x,y,WHITE,NAVY)
         y+=15
         i+=1
     
@@ -282,6 +278,7 @@ def main(vs):
     hm = var_store['horo_main']
     tft = var_store['tft']
     tft.set_tch_cb(tch_cb)
+    tft.use_buf(False)
     
     dialog_on=False
     quit_f=False
@@ -312,13 +309,13 @@ def main(vs):
             msg_changed=False
             print(msg_1)
             if msg_1:
-                tft.text(msg_1,0,180,WHITE,BG_NAVY)
+                tft.text(msg_1,0,180,WHITE,NAVY)
             else:
-                tft.text(MSG_SP,0,180,WHITE,BG_NAVY)
+                tft.text(MSG_SP,0,180,WHITE,NAVY)
             if msg_2:
-                tft.text(msg_2,0,190,WHITE,BG_NAVY)
+                tft.text(msg_2,0,190,WHITE,NAVY)
             else:
-                tft.text(MSG_SP,0,190,WHITE,BG_NAVY)
+                tft.text(MSG_SP,0,190,WHITE,NAVY)
                 
         time.sleep(0.1)
         if quit_f:

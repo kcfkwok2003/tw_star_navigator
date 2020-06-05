@@ -12,7 +12,7 @@ def tch_cb(st,x,y):
         return
     if y>180:
         if x <80:
-            tft.text('RESETING...',10,170,WHITE)
+            tft.text('RESETING...',10,170,WHITE,RED)
             rtc=machine.RTC()
             rtc.memory('ap_menu')
             machine.deepsleep(1)
@@ -121,6 +121,7 @@ def add_select(dictx):
 def render_horo(tz,yr,mon,mday,hr,minu,sec,wday,lat,lon,drx):
     global var_store
     tft=var_store['tft']
+    tft.use_buf(True)
     from tfth import TFTHoro, WDAYS
     tfth = TFTHoro(tft,tzone=tz,lat=lat,lon=lon,drx=drx)
     try:
@@ -133,10 +134,17 @@ def render_horo(tz,yr,mon,mday,hr,minu,sec,wday,lat,lon,drx):
         tfth.constel =ct
     except Exception as e:
         sys.print_exception(e)
-        
+
+    tft.fill(NAVY)
+    tft.text('%d-%02d-%02d' % (yr,mon,mday),0,0,WHITE,NAVY)
+    tft.text('%02d:%02d' % (hr,minu),0,16,WHITE,NAVY)
+    tft.text('%s' % WDAYS[wday],0,32,WHITE,NAVY)
+    
     tfth.set_datetime(yr,mon,mday,hr,minu,sec)
     tfth.cal_horo_info()
-    tfth.start_gr(True)
+    tfth.start_gr()
+    tft.show()
+    
     skip="""
     import font as fnt
     fnt.table.set_e('etfontx32cg')
@@ -155,16 +163,18 @@ def main(vs):
     var_store=vs    
     horo_main = var_store['horo_main']
     tft = var_store['tft']
-    tft.set_tch_cb(tch_cb)    
+    tft.set_tch_cb(tch_cb)
+    tft.use_buf(False)
+    
     info = horo_main.info
     apname = info['apname']
     ip = info['ip']
     tft.fill_rect(20,20,200,100,NAVY)
     tft.rect(20,20,200,100,LIME)    
-    tft.text(apname, 25,30, WHITE)
-    tft.text(ip, 25,40,WHITE)
-    tft.text('starting httpd',25,50,WHITE)
-    tft.text('RESET',10,200)
+    tft.text(apname, 25,30, WHITE,NAVY)
+    tft.text(ip, 25,40,WHITE,NAVY)
+    tft.text('starting httpd',25,50,WHITE,NAVY)
+    tft.text('RESET',10,200,WHITE,NAVY)
     tft.rect(0,180,80,40,WHITE)    
     if USE_THREAD:
         import _thread
@@ -219,7 +229,7 @@ def _httpd():
     s.listen(1)
     print('listening on',addr)
     tft = var_store['tft']
-    tft.text('httpd listening',25,50,WHITE)    
+    tft.text('httpd listening',25,50,WHITE,NAVY)    
     from tfth import get_time, load_tzone, load_geo_cfg
     while True:
         conn,addr = s.accept()

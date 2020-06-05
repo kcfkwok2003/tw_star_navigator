@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ap_menu.py
-version='1.0'
+version='ap_menu-1.0'
 
 from color import *
 import time
@@ -59,7 +59,7 @@ def clear_dialog():
 def reset(n):
     global tft
     print('reset')
-    tft.text('Reseting...',5,5,WHITE)
+    tft.text('Reseting...',5,180,WHITE,RED)
     import machine
     machine.reset()
     
@@ -91,10 +91,13 @@ def on_down(n):
     show_menu()
 
 def on_enter(n):
-    global msel, menu,next_app,quit_f
+    global msel, menu,next_app,quit_f,tft
     print('on_enter')
     items=menu['items']
     action= items[msel][1]
+    if tft.use_buf():
+        tft.use_buf(False)
+    tft.text(items[msel][0],0,180,WHITE,RED)
     if action:
         if type(action)==type(''):
             next_app=action
@@ -106,7 +109,7 @@ def on_enter(n):
 
 def start_app(act_name,msg):
     global tft
-    tft.text(msg,5,5,WHITE)
+    tft.text(msg,5,180,WHITE,RED)
     from machine import RTC, deepsleep
     rtc=RTC()
     rtc.memory(act_name)
@@ -128,8 +131,9 @@ MENU_MAIN={
         ('9.Httpd horo',('ap_httpd_horo','httpd set horo...')),        
         ('10.Httpd planet',('ap_httpd_planet','httpd set planet...')),        
         ('11.Show Bitmap','ap_bmp'),
-        ('12.Reset',reset),
-        ('13.Quit', quit),        
+        ('12.Show Bitmap 1','ap_bmp_1'),
+        ('13.Reset',reset),
+        ('14.Quit', quit),        
         ]
     }
 
@@ -147,7 +151,7 @@ def show_menu(refresh=False):
     w= 240
     h=20
     menu_name=menu['name']
-    tft.text(menu_name,x+2,y+5,WHITE)
+    tft.text(menu_name,x+2,y+5,WHITE,NAVY)
     tft.rect(x,y,w,h,WHITE)
     
     y+=25
@@ -161,7 +165,7 @@ def show_menu(refresh=False):
         if i+mstart==msel:
             tft.text(menux,x,y,NAVY,WHITE)
         else:
-            tft.text(menux,x,y,WHITE,BG_NAVY)
+            tft.text(menux,x,y,WHITE,NAVY)
         y+=15
         i+=1
     
@@ -192,7 +196,7 @@ def main(vs):
     var_store=vs
     tft = var_store['tft']
     tft.set_tch_cb(tch_cb)
-    
+    tft.use_buf(False)
     dialog_on=False
     quit_f=False
     next_app=None

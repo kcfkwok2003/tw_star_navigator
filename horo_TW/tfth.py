@@ -7,8 +7,8 @@ from twatch import *
 from math_util import *
 import horo_util as hu
 import planet_util as pu
-from g_sign_1 import g_sign
-from g_planet_1 import g_planet
+from g_sign import g_sign
+from g_planet import g_planet
 import sys
 import time
 import gc
@@ -196,10 +196,10 @@ class TFTHoro:
             bs = g_sign[s]
             nbs = conv_mono_to_rgb565(bs,NAVY,YELLOW)
             h = int(len(bs)/2.0)
-            #frm = framebuf.FrameBuffer(nbs,20,h,framebuf.RGB565)
+            frm = framebuf.FrameBuffer(nbs,h,h,framebuf.RGB565)
             ofs=-9
-            #tft.blit_buffer(frm,xsc+ofs,ysc+ofs,20,16)
-            tft.blit_buffer(nbs,xsc+ofs,ysc+ofs,16,h)
+            tft.blit(frm,xsc+ofs,ysc+ofs)
+            #tft.blit_buffer(nbs,xsc+ofs,ysc+ofs,16,h)
             phi +=30
             del bs
             del nbs
@@ -234,30 +234,35 @@ class TFTHoro:
         self.sec=sec
         self.days_0 = pu.days_since_2000_jan_0(yr,mon,mday)
 
-    def show_constellation(self,constellation,ari_ang,xc,yc,r6,requ,r8,rr,c):
+    def show_constellation(self,constellation,ari_ang,xc,yc,r6,requ,r8,rr,c,debug):
         tft=self.tft
         stars= constellation['stars']
+        star_pos={}
+        for star in stars:
+            ra, dec = stars[star]
+            ra = ra * 15
+            x,y = self.ra_dec_to_xyplot(ra,dec,ari_ang,xc,yc,r6,requ,r8,rr)
+            #star_pos.append((x,y,star))
+            star_pos[star]=(x,y)
+            
         lines = constellation['lines']
-        star_pos=[]
         for line in lines:
             s=1
             for star in line:
-                ra, dec = stars[star]
-                ra = ra * 15
-                x,y = self.ra_dec_to_xyplot(ra,dec,ari_ang,xc,yc,r6,requ,r8,rr)
-                
+                x,y = star_pos[star]
                 if s:
                     s=0
                     x0=x
                     y0=y
                     continue
                 tft.line(x0,y0,x,y,BLUE)
-                star_pos.append((x,y))
-                #self.star(x,y,WHITE)
                 x0=x
                 y0=y
         # highlight star
-        for x,y in star_pos:
+        for star in star_pos:
+            x,y = star_pos[star]
+            if debug:
+                print('star:%s x:%s y:%s' % (star,x,y))
             self.star(x,y, WHITE)
         del star_pos
         
@@ -339,7 +344,9 @@ class TFTHoro:
             tft.line(xx,yy,x5,y5,YELLOW)
 
             # planet symbol
-            tft.blit_buffer(nbs,x5-ofs,y5-ofs,12,h) 
+            frm = framebuf.FrameBuffer(nbs,h,h,framebuf.RGB565)
+            #tft.blit_buffer(nbs,x5-ofs,y5-ofs,12,h)
+            tft.blit(frm,x5-ofs,y5-ofs) 
             last_ang = angx
             del bs
             del nbs
@@ -382,8 +389,9 @@ class TFTHoro:
             tft.line(x0,y0,x,y,LIME)
 
         # plot constellation
+        debug=False
         for ctx in self.constel:
-            self.show_constellation(self.constel[ctx],ari_ang,xc,yc,r6,requ,r8,rr,WHITE)
+            self.show_constellation(self.constel[ctx],ari_ang,xc,yc,r6,requ,r8,rr,WHITE, debug=debug)
 
 
         gc.collect()
@@ -434,8 +442,8 @@ def show_batt_info(force_update=True):
     tft.fill_rect(190+pcw,0,50-pcw,8,NAVY)    
     tft.fill_rect(190,0,pcw,8,color)
     tft.rect(190,0,50,8,WHITE)
-    tft.text('{:>4}'.format(cc),200,16, WHITE,GREEN)
-    tft.text('%.1f' % v,215,32, WHITE,GREEN)
+    tft.text('{:>4}'.format(cc),200,16, WHITE,NAVY)
+    tft.text('%.1f' % v,215,32, WHITE,NAVY)
 
 QX_NONE=0
 QX_MENU=1
@@ -446,6 +454,7 @@ def main(vs):
     var_store = vs
     print("tfth.main")
     tft = var_store['tft']
+    tft.use_buf(True)
     tft.set_tch_cb(tch_cb)
     motor=var_store['motor']
     horo_main=var_store['horo_main']
@@ -510,21 +519,29 @@ def main(vs):
                 motor.duty(8)
                 time.sleep(0.2)
                 motor.duty(0)
+                rtcx.sync_local()
                 tft.sleep_mode(0)
                 tft.bl_on()
-                # turn on wifi... 
+                tm=get_time()
+                ct = time.localtime(tm)
+                yr,mon,mday,hr,minu,sec,wday,_,=ct
+                tft.use_buf(False)
+                tft.draw_string_at('%02d:%02d' % (hr,minu),48,100,fnt,WHITE,RED)
+                tft.use_buf(True)
                 break
             time.sleep(0.5)
             tm = get_time()
             ct = time.localtime(tm)
             yr,mon,mday,hr,minu,sec,wday,_,=ct
             colon=' '
+            tft.use_buf(False)
             if i:
                 colon=':'
                 get_batt_info()
                 show_batt_info(force_update=False)
             i = not i
-            tft.text('%02d%s%02d' % (hr,colon,minu),0,16,WHITE,GREEN)
+            tft.text('%02d%s%02d' % (hr,colon,minu),0,16,WHITE,NAVY)
+            tft.use_buf(True)
             #tft.draw_string_at(colon,244,165,fnt,fg=WHITE,bg=NAVY)
             if sec==0:
                 if minu==0:
@@ -533,9 +550,15 @@ def main(vs):
                 break
     if qx==QX_LUNAR:
         print('start ap_lunar')
+        tft.use_buf(False)
+        tft.draw_string_at('Lunar',60,100,fnt,WHITE,RED)
+        tft.use_buf(True)
         return 'ap_lunar'
     if qx==QX_MENU:
         print('start ap_menu')
+        tft.use_buf(False)
+        tft.draw_string_at('Menu',72,100,fnt,WHITE,RED)
+        tft.use_buf(True)        
         return 'ap_menu'
     print( "Return None")
     
@@ -557,19 +580,21 @@ def _t(horo_main,tfth,tft,first_cycle):
     ct = time.localtime(tm)
     yr,mon,mday,hr,minu,sec,wday,_,=ct
     tft.fill(NAVY)
-    tft.text('%d-%02d-%02d' % (yr,mon,mday),0,0,WHITE,GREEN)
-    tft.text('%02d:%02d' % (hr,minu),0,16,WHITE,GREEN)
-    tft.text('%s' % WDAYS[wday],0,32,WHITE,GREEN)
-    tft.text('MENU',9,222,WHITE,GREEN)
-    tft.rect(5,220,40,10,WHITE)
-    tft.text('SLEEP',195,222,WHITE)
-    tft.rect(190,220,50,10,WHITE)
+    tft.text('%d-%02d-%02d' % (yr,mon,mday),0,0,WHITE,NAVY)
+    tft.text('%02d:%02d' % (hr,minu),0,16,WHITE,NAVY)
+    tft.text('%s' % WDAYS[wday],0,32,WHITE,NAVY)
+    
+    tft.text('MENU',9,227,WHITE,NAVY)
+    tft.rect(5,220,40,20,WHITE)
+    tft.text('SLEEP',195,227,WHITE,NAVY)
+    tft.rect(190,220,50,20,WHITE)
     
     get_batt_info()
     show_batt_info()    
     tfth.set_datetime(yr,mon,mday,hr,minu,sec)
     tfth.cal_horo_info()
     tfth.start_gr()
+    tft.show()
     skip='''
     tft.draw_string_at('%d' % yr,220,5,fnt,fg=WHITE,bg=NAVY)
     tft.draw_string_at('%02d' % mon,268,37,fnt,fg=WHITE,bg=NAVY)

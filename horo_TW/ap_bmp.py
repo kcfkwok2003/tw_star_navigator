@@ -15,6 +15,7 @@ def main(vs):
     var_store=vs
     tft=var_store['tft']
     tft.set_tch_cb(tch_cb)
+    tft.use_buf(False)
     render_bmp(vs,12,0,215,215)
     if 'old_app_name' not in var_store:
         return
@@ -39,8 +40,8 @@ def render_bmp(vs,x=12,y=0,w=215,h=215):
         bs=bytearray()
         bx=ss[:]
         while bx:
-            bs.append(bx[1])
             bs.append(bx[0])
+            bs.append(bx[1])            
             bx=bx[2:]
             if tch:
                 break

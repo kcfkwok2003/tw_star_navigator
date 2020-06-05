@@ -79,11 +79,12 @@ def conv_mono_to_rgb565(bs,bg,fg):
         for i in range(2):
             for j in range(8):
                 if BITMASK[j] & rbs[i]:
+                    nbs.append(fg & 0xff)                    
                     nbs.append(fg >> 8)
-                    nbs.append(fg & 0xff)
                 else:
+                    nbs.append(bg & 0xff)
                     nbs.append(bg >> 8)
-                    nbs.append(bg & 0xff)                        
+
         rbs=rbs[2:]
     return nbs
 
@@ -94,17 +95,19 @@ def conv_mono2_to_rgb565(bs,bg,fg):
     while rbs:
         for j in range(8):
             if BITMASK[j] & rbs[0]:
+                nbs.append(fg & 0xff)                
                 nbs.append(fg >> 8)
-                nbs.append(fg & 0xff)
             else:
+                nbs.append(bg & 0xff)                
                 nbs.append(bg >> 8)
-                nbs.append(bg & 0xff)
+
         for j in range(4):
             if BITMASK[j] & rbs[1]:
+                nbs.append(fg & 0xff)                
                 nbs.append(fg >> 8)
-                nbs.append(fg & 0xff)
             else:
+                nbs.append(bg & 0xff)                                    
                 nbs.append(bg >> 8)
-                nbs.append(bg & 0xff)                    
+
         rbs=rbs[2:]
     return nbs    

@@ -16,7 +16,7 @@ def tch_cb(st,x,y):
         return
     if y>180:
         if x <80:
-            tft.text('RESETING...',10,100,WHITE)
+            tft.text('RESETING...',10,170,WHITE,RED)
             rtc=machine.RTC()
             rtc.memory('ap_menu')
             machine.deepsleep(1)
@@ -27,15 +27,18 @@ def main(vs):
     horo_main = var_store['horo_main']
     tft = var_store['tft']
     tft.set_tch_cb(tch_cb)
+    tft.use_buf(False)
+    
     info = horo_main.info
     apname = info['apname']
     ip = info['ip']
     tft.fill_rect(20,50,200,100,NAVY)
     tft.rect(20,50,200,100,LIME)
-    tft.text(apname, 25,60, WHITE)
-    tft.text(ip, 25,75,WHITE)
-    tft.text('starting httpd constel',25,90,WHITE)
-    tft.text('RESET',10,200)
+    tft.text(apname, 25,60, WHITE,NAVY)
+    tft.text(ip, 25,75,WHITE,NAVY)
+    tft.text('starting httpd constel',25,90,WHITE,NAVY)
+    
+    tft.text('RESET',10,200,WHITE,NAVY)
     tft.rect(0,180,80,40,WHITE)
     if USE_THREAD:
         import _thread
@@ -247,7 +250,7 @@ def _httpd():
     s.listen(1)
     print('listening on',addr)
     tft = var_store['tft']
-    tft.text('httpd constel listening',25,130,WHITE)
+    tft.text('httpd constel listening',25,130,WHITE,NAVY)
     while True:
         conn,addr = s.accept()
         print("connected from",addr)

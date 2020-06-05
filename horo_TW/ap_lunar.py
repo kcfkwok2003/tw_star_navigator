@@ -99,6 +99,7 @@ def main(vs):
     tft = var_store['tft']
     tft.set_tch_cb(tch_cb)
     motor=var_store['motor']
+    tft.use_buf(True)
     tft.fill(NAVY)
     rtcx = var_store['rtcx']
     rtcx.sync_local()
@@ -113,11 +114,13 @@ def main(vs):
             if btn['D']:
                 qx=QX_HORO
                 break
+
         tm = get_time()
         ct = time.localtime(tm)
         yr,mon,mday,hr,minu,sec,wday,_,=ct
         show_lunar(yr,mon,mday,hr,minu,sec)
         show_datetime(yr,mon,mday,hr,minu,sec,wday)
+        tft.show()
         i=0
         sleep_btn=False
         while True:
@@ -144,9 +147,15 @@ def main(vs):
                 motor.duty(8)
                 time.sleep(0.2)
                 motor.duty(0)
+                rtcx.sync_local()
                 tft.sleep_mode(0)
                 tft.bl_on()
-                # turn on wifi... 
+                tm=get_time()
+                ct = time.localtime(tm)
+                yr,mon,mday,hr,minu,sec,wday,_,=ct
+                tft.use_buf(False)
+                tft.draw_string_at('%02d:%02d' % (hr,minu),48,100,fnt,WHITE,RED)
+                tft.use_buf(True)
                 break                
             time.sleep(0.5)
             tm = get_time()
@@ -156,7 +165,9 @@ def main(vs):
             if i:
                 colon=':'
             i = not i
+            tft.use_buf(False)
             tft.draw_string_at(colon,160,160,fnt,fg=WHITE,bg=NAVY)
+            tft.use_buf(True)
             if sec==0:
                 if minu==0:
                     # sync every hour
@@ -164,9 +175,15 @@ def main(vs):
                 break
     if qx==QX_MENU:
         print("start ap_menu")
+        tft.use_buf(False)
+        tft.draw_string_at("Menu",72,100,fnt,WHITE,RED)
+        tft.use_buf(True)
         return "ap_menu"
     if qx==QX_HORO:
         print("start horo")
+        tft.use_buf(False)
+        tft.draw_string_at("Horo",72,100,fnt,WHITE,RED)
+        tft.use_buf(True)        
         return "tfth"
     print("return None")
     
@@ -176,16 +193,19 @@ def show_lunar(yr,mon,mday,hr,minu,sec):
     lnx = ln.Lunar(ct)
     gz_yr = lnx.gz_year()
     sx_yr = lnx.sx_year()
-    xyr, xmon, xday = lnx.ln_date()
+    xyr, xmon, xday,leap = lnx.ln_date()
     jie, ofs = lnx.ln_jie_2()
     gz_hr, gz_ke, gz_kev = lnx.gz_hour()
     if gz_ke >0:
         gz_hr += gz_kev
-    x=10
+    x=5
     y=5
     tft.draw_string_at('農曆',x,y+0,fnt,bg=NAVY)
     tft.draw_string_at('%s%s年' % (gz_yr,sx_yr), x,y+32, fnt,bg=NAVY)
-    tft.draw_string_at('%s月%s' % (lnx.lm[xmon-1], lnx.ld[(xday-1)*2:xday*2]), x,y+64,fnt,bg=NAVY)
+    if leap:
+        tft.draw_string_at('閏%s月%s' % (lnx.lm[xmon-1], lnx.ld[(xday-1)*2:xday*2]), x,y+64,fnt,bg=NAVY)
+    else:
+        tft.draw_string_at('%s月%s' % (lnx.lm[xmon-1], lnx.ld[(xday-1)*2:xday*2]), x,y+64,fnt,bg=NAVY)
     tft.draw_string_at('%s月' % lnx.gz_month(),x,y+96,fnt,bg=NAVY)
     tft.draw_string_at('%s日' % lnx.gz_day(),x,y+128,fnt,bg=NAVY)
     tft.draw_string_at('%s' % gz_hr,x,y+160,fnt,bg=NAVY)
@@ -198,11 +218,11 @@ def show_lunar(yr,mon,mday,hr,minu,sec):
 def show_datetime(yr,mon,mday,hr,minu,sec,wday):
     global tft
     tft.draw_string_at('%d' % yr,144,0,fnt,fg=WHITE,bg=NAVY)
-    tft.draw_string_at('/%02d' % mon,160,32,fnt,fg=WHITE,bg=NAVY)
-    tft.draw_string_at('/%02d' % mday,160,64,fnt,fg=WHITE,bg=NAVY)
-    tft.draw_string_at('%s' % WDAYS[wday],160,96,fnt,fg=WHITE,bg=NAVY)
+    tft.draw_string_at('/%02d' % mon,168,32,fnt,fg=WHITE,bg=NAVY)
+    tft.draw_string_at('/%02d' % mday,168,64,fnt,fg=WHITE,bg=NAVY)
+    tft.draw_string_at('%s' % WDAYS[wday],168,96,fnt,fg=WHITE,bg=NAVY)
 
-    tft.draw_string_at('%02d' % hr,186,128,fnt,fg=WHITE,bg=NAVY)
-    tft.draw_string_at(':%02d' % minu,160,160,fnt,fg=WHITE,bg=NAVY)
+    tft.draw_string_at('%02d' % hr,192,128,fnt,fg=WHITE,bg=NAVY)
+    tft.draw_string_at(':%02d' % minu,168,160,fnt,fg=WHITE,bg=NAVY)
 
     
